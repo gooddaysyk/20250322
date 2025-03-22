@@ -130,50 +130,160 @@
             background-color: #4CAF50;
             color: white;
         }
+        .assignee-manager {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .assignee-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .assignee-item {
+            padding: 5px 10px;
+            border-radius: 15px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .assignee-delete {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .assignee-filter {
+            margin: 10px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .menu-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .menu-btn:hover {
+            background-color: #45a049;
+        }
+        .menu-btn.active {
+            background-color: #2E7D32;
+        }
+        .screen {
+            display: none;
+        }
+        .screen.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>일정 관리</h1>
-        <div class="schedule-form">
-            <input type="text" id="scheduleInput" class="schedule-input" placeholder="일정을 입력하세요">
-            <select id="prioritySelect" class="priority-select">
-                <option value="low">낮은 우선순위</option>
-                <option value="medium">중간 우선순위</option>
-                <option value="high">높은 우선순위</option>
-            </select>
-            <button onclick="addSchedule()" class="submit-btn">추가</button>
+        
+        <div class="menu">
+            <button class="menu-btn active" onclick="showScreen('main')">일정 관리</button>
+            <button class="menu-btn" onclick="showScreen('assignee')">담당자 관리</button>
         </div>
-        <div class="filters">
-            <button class="filter-btn active" onclick="filterSchedules('all')">전체</button>
-            <button class="filter-btn" onclick="filterSchedules('active')">진행중</button>
-            <button class="filter-btn" onclick="filterSchedules('completed')">완료</button>
+
+        <!-- 메인 화면 -->
+        <div id="mainScreen" class="screen active">
+            <div class="assignee-filter" id="assigneeFilter">
+                <button class="filter-btn active" onclick="filterByAssignee('all')">모든 담당자</button>
+                <!-- 담당자별 필터 버튼이 여기에 추가됩니다 -->
+            </div>
+
+            <div class="schedule-form">
+                <input type="text" id="scheduleInput" class="schedule-input" placeholder="일정을 입력하세요">
+                <input type="date" id="dateInput" class="schedule-input" style="margin-bottom: 10px;">
+                <select id="assigneeSelect" class="priority-select" style="margin-bottom: 10px;">
+                    <option value="">담당자 선택</option>
+                </select>
+                <select id="prioritySelect" class="priority-select">
+                    <option value="low">낮은 우선순위</option>
+                    <option value="medium">중간 우선순위</option>
+                    <option value="high">높은 우선순위</option>
+                </select>
+                <button onclick="addSchedule()" class="submit-btn">추가</button>
+            </div>
+            <div class="filters">
+                <button class="filter-btn active" onclick="filterSchedules('all')">전체</button>
+                <button class="filter-btn" onclick="filterSchedules('active')">진행중</button>
+                <button class="filter-btn" onclick="filterSchedules('completed')">완료</button>
+            </div>
+            <div id="scheduleList" class="schedule-list">
+                <!-- 일정 목록이 여기에 표시됩니다 -->
+            </div>
         </div>
-        <div id="scheduleList" class="schedule-list">
-            <!-- 일정 목록이 여기에 표시됩니다 -->
+
+        <!-- 담당자 관리 화면 -->
+        <div id="assigneeScreen" class="screen">
+            <div class="assignee-manager">
+                <h3>담당자 관리</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" id="newAssigneeName" class="schedule-input" placeholder="새 담당자 이름" style="margin: 0;">
+                    <input type="color" id="newAssigneeColor" value="#4CAF50">
+                    <button onclick="addAssignee()" class="submit-btn" style="margin: 0;">담당자 추가</button>
+                </div>
+                <div id="assigneeList" class="assignee-list">
+                    <!-- 담당자 목록이 여기에 표시됩니다 -->
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         let schedules = JSON.parse(localStorage.getItem('schedules')) || [];
         let currentFilter = 'all';
+        let currentAssigneeFilter = 'all';
+        let assignees = JSON.parse(localStorage.getItem('assignees')) || [
+            { name: '김철수', color: '#ff4444' },
+            { name: '이영희', color: '#33b5e5' },
+            { name: '박지민', color: '#00C851' },
+            { name: '정민수', color: '#ffbb33' }
+        ];
 
         function saveSchedules() {
             localStorage.setItem('schedules', JSON.stringify(schedules));
         }
 
+        function saveAssignees() {
+            localStorage.setItem('assignees', JSON.stringify(assignees));
+            updateAssigneeSelects();
+            renderAssignees();
+        }
+
         function addSchedule() {
             const input = document.getElementById('scheduleInput');
             const prioritySelect = document.getElementById('prioritySelect');
+            const assigneeSelect = document.getElementById('assigneeSelect');
             const scheduleText = input.value.trim();
+            const assignee = assigneeSelect.value;
             
             if (scheduleText === '') return;
+            if (assignee === '') {
+                alert('담당자를 선택해주세요.');
+                return;
+            }
 
             const schedule = {
                 id: Date.now(),
                 text: scheduleText,
+                date: document.getElementById('dateInput').value,
                 completed: false,
-                priority: prioritySelect.value
+                priority: prioritySelect.value,
+                assignee: assignee
             };
 
             schedules.push(schedule);
@@ -203,10 +313,19 @@
         function editSchedule(id) {
             const schedule = schedules.find(s => s.id === id);
             const newText = prompt('일정을 수정하세요:', schedule.text);
-            if (newText !== null && newText.trim() !== '') {
+            const newDate = prompt('날짜를 수정하세요 (YYYY-MM-DD):', schedule.date);
+            const newAssignee = prompt('담당자를 입력하세요:', schedule.assignee);
+            if (newText !== null && newText.trim() !== '' && 
+                newDate !== null && newDate.trim() !== '' && 
+                newAssignee !== null && newAssignee.trim() !== '') {
                 schedules = schedules.map(schedule => {
                     if (schedule.id === id) {
-                        return { ...schedule, text: newText.trim() };
+                        return { 
+                            ...schedule, 
+                            text: newText.trim(), 
+                            date: newDate.trim(),
+                            assignee: newAssignee.trim()
+                        };
                     }
                     return schedule;
                 });
@@ -224,24 +343,109 @@
             renderSchedules();
         }
 
+        function addAssignee() {
+            const nameInput = document.getElementById('newAssigneeName');
+            const colorInput = document.getElementById('newAssigneeColor');
+            const name = nameInput.value.trim();
+            
+            if (name === '') return;
+            if (assignees.some(a => a.name === name)) {
+                alert('이미 존재하는 담당자입니다.');
+                return;
+            }
+
+            assignees.push({
+                name: name,
+                color: colorInput.value
+            });
+
+            nameInput.value = '';
+            saveAssignees();
+        }
+
+        function deleteAssignee(name) {
+            if (schedules.some(s => s.assignee === name)) {
+                alert('이 담당자의 일정이 존재하여 삭제할 수 없습니다.');
+                return;
+            }
+            assignees = assignees.filter(a => a.name !== name);
+            saveAssignees();
+        }
+
+        function updateAssigneeSelects() {
+            const select = document.getElementById('assigneeSelect');
+            select.innerHTML = '<option value="">담당자 선택</option>';
+            assignees.forEach(assignee => {
+                const option = document.createElement('option');
+                option.value = assignee.name;
+                option.textContent = assignee.name;
+                select.appendChild(option);
+            });
+        }
+
+        function renderAssignees() {
+            const container = document.getElementById('assigneeList');
+            const filterContainer = document.getElementById('assigneeFilter');
+            
+            container.innerHTML = '';
+            filterContainer.innerHTML = '<button class="filter-btn' + (currentAssigneeFilter === 'all' ? ' active' : '') + '" onclick="filterByAssignee(\'all\')">모든 담당자</button>';
+            
+            assignees.forEach(assignee => {
+                // 담당자 목록 렌더링
+                const item = document.createElement('div');
+                item.className = 'assignee-item';
+                item.style.backgroundColor = assignee.color;
+                item.innerHTML = `
+                    ${assignee.name}
+                    <span class="assignee-delete" onclick="deleteAssignee('${assignee.name}')">&times;</span>
+                `;
+                container.appendChild(item);
+
+                // 필터 버튼 추가
+                const filterBtn = document.createElement('button');
+                filterBtn.className = 'filter-btn' + (currentAssigneeFilter === assignee.name ? ' active' : '');
+                filterBtn.onclick = () => filterByAssignee(assignee.name);
+                filterBtn.textContent = assignee.name;
+                filterContainer.appendChild(filterBtn);
+            });
+        }
+
+        function filterByAssignee(assignee) {
+            currentAssigneeFilter = assignee;
+            document.querySelectorAll('.assignee-filter .filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            renderSchedules();
+        }
+
         function renderSchedules() {
             const scheduleList = document.getElementById('scheduleList');
             scheduleList.innerHTML = '';
 
             let filteredSchedules = schedules;
+            
+            // 상태 필터 적용
             if (currentFilter === 'active') {
-                filteredSchedules = schedules.filter(s => !s.completed);
+                filteredSchedules = filteredSchedules.filter(s => !s.completed);
             } else if (currentFilter === 'completed') {
-                filteredSchedules = schedules.filter(s => s.completed);
+                filteredSchedules = filteredSchedules.filter(s => s.completed);
+            }
+
+            // 담당자 필터 적용
+            if (currentAssigneeFilter !== 'all') {
+                filteredSchedules = filteredSchedules.filter(s => s.assignee === currentAssigneeFilter);
             }
 
             filteredSchedules.forEach(schedule => {
                 const scheduleItem = document.createElement('div');
                 scheduleItem.className = `schedule-item priority-${schedule.priority} ${schedule.completed ? 'completed' : ''}`;
                 
+                const assigneeColor = assignees.find(a => a.name === schedule.assignee)?.color || '#000000';
+                
                 const textSpan = document.createElement('span');
                 textSpan.className = 'schedule-text';
-                textSpan.textContent = schedule.text;
+                textSpan.innerHTML = `<span style="color: ${assigneeColor}; font-weight: bold;">[${schedule.assignee}]</span> ${schedule.text} (${schedule.date})`;
                 
                 const btnGroup = document.createElement('div');
                 btnGroup.className = 'btn-group';
@@ -279,7 +483,25 @@
         });
 
         // 초기 렌더링
+        updateAssigneeSelects();
+        renderAssignees();
         renderSchedules();
+
+        function showScreen(screenName) {
+            // 모든 화면 숨기기
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            // 모든 메뉴 버튼 비활성화
+            document.querySelectorAll('.menu-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 선택된 화면 표시
+            document.getElementById(screenName + 'Screen').classList.add('active');
+            // 선택된 메뉴 버튼 활성화
+            event.target.classList.add('active');
+        }
     </script>
 </body>
 </html> 
