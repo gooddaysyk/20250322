@@ -247,12 +247,7 @@
         let schedules = JSON.parse(localStorage.getItem('schedules')) || [];
         let currentFilter = 'all';
         let currentAssigneeFilter = 'all';
-        let assignees = JSON.parse(localStorage.getItem('assignees')) || [
-            { name: '김철수', color: '#ff4444' },
-            { name: '이영희', color: '#33b5e5' },
-            { name: '박지민', color: '#00C851' },
-            { name: '정민수', color: '#ffbb33' }
-        ];
+        let assignees = JSON.parse(localStorage.getItem('assignees')) || [];
 
         function saveSchedules() {
             localStorage.setItem('schedules', JSON.stringify(schedules));
